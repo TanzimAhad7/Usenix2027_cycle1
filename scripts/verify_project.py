@@ -23,6 +23,8 @@ def main():
     mf = ROOT / 'PACKAGE_MANIFEST.json'
     payload = json.loads(mf.read_text(encoding='utf-8'))
     entries = payload['files']
+    if isinstance(entries, list):
+        entries = {row['path']: row['sha256'] for row in entries}
     fail = []
     for rel, expected in entries.items():
         p = ROOT / rel
@@ -34,7 +36,7 @@ def main():
         for item in fail:
             print('ERROR:', item, file=sys.stderr)
         raise SystemExit(1)
-    print('PROJECT VERIFY PASS:', len(entries), 'packaged files match their SHA-256 manifest')
+    print('HISTORICAL ORIGINAL-ASSEMBLY VERIFY PASS:', len(entries), 'packaged files match their SHA-256 manifest')
     print('Scientific scope: file integrity only; not a native, autonomous or publication result.')
 
 if __name__ == '__main__':

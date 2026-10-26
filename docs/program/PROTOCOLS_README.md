@@ -1,5 +1,0 @@
-# Program-wide study protocols: run counts are NOT implemented code
-
-The protocol JSON files are the **conditional experimental designs** in the active v6.2 authority: D24, new H24, S128, A64, H64. They can be checked using `bash LAUNCH.sh protocols protocols_01`. All five are deliberately marked `PROPOSED_OR_REPORTED_NOT_EXECUTED` because their presence is **not proof an experimental runner exists**. To execute them one day, we must implement the selected runner, qualify code and inputs, verify user-grant semantics and task objectives, preserve raw effects and human annotation, and prospectively freeze confirmation parameters.
-
-R and B have **genuine current source-bound component code**, separate from this metadata: `experiments/review_binding/`. P/O/H modules have their specified proof obligations but are not invented as executables. F160 has been superseded by claim-specific valid reference-fork design; the reported old pilot has five reference-only branches, not whole-agent rewind.

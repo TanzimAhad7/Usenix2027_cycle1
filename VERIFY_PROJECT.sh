@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 cd "$(dirname "$0")"
-command -v python3 >/dev/null || { echo 'ERROR: python3 is required' >&2; exit 2; }
-python3 scripts/verify_project.py
+if [[ -x .venv/bin/python ]]; then
+  exec .venv/bin/python scripts/verify_repository_current.py "$@"
+fi
+# This verifier imports only the standard-library protocol/package functions.
+exec python3 scripts/verify_repository_current.py "$@"

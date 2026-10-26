@@ -1,83 +1,96 @@
-# IEEE S&P v6.2 research foundation
+# IEEE S&P standalone research project
 
-**Single starting sequence:** `START_HERE.md`. **Continue scientific work:** `WORK_NEXT.md`. Additional evidence gates, manuscript requirements, module status and proposed schedules are consolidated under `docs/program/` and `protocols/proposed/`. Check schedules through `bash LAUNCH.sh protocols protocols_01`; they remain unimplemented conditional studies.
+This is the **complete cleaned code and light-artifact repository** for the new IEEE Symposium on Security and Privacy project. It contains the current campaign, selected original research foundation, historical implementations and available bounded result summaries. The rejected USENIX manuscript is the author's own unpublished research; this is a new submission, not a rebuttal. The hosting name `Usenix2027_cycle1` does not define the venue.
 
-This is the starting repository for the **whole v6.2 research program** and a new IEEE S&P paper. It includes the selected USENIX design/code/data/results the plan builds on, their corrections and provenance, the current R/B implementation, and explicit obligations for the rest of the research. It is not a rebuttal or a claim that proposed experiments have already been completed.
+## Publish this clean tree to the existing GitHub repository
 
-The full plan is `docs/RESEARCH_PLAN.md`, preserved unchanged. `docs/PLAN_COVERAGE.csv` maps **every main section and appendix** to local artifacts, readiness and remaining work. Start by reading `docs/FOUNDATION.md`.
-
-## What was selected from the prior project
-
-The new project incorporates **all nine historical study trees**, including their task/design definitions, prompts, raw outputs, configurations/freezes, analysis code and scientific failure/correction records. It also includes the tested guard/runtime integrations and adapters, original oracle/replay logic, implementation evidence, final figures/producers, relevant verification/reproduction source and provenance.
-
-`provenance/USENIX_SELECTION.csv` accounts for every original file. It includes 5,682 files and excludes 106 files (general project logs, superseded early pilot/cosmetic histories and model-generated literature-audit responses). Scientific per-study logs and failed/frozen records remain. A primary-source catalog and qualified reading/audit records are included separately. The bulk original ZIP and a duplicate complete extracted checkout are not required.
-
-Everything retained is part of this directory. No command requires another USENIX project, archive or venv.
-
-## Open and set up
-
-Open `IEEE_SP_2027.code-workspace` in VS Code, locally or over Remote SSH. Python 3.12 on Linux is tested. Bootstrap needs a system Python and package-index access; research packages are installed only into this project's `.venv`.
+Extract this complete ZIP into a **separate folder** while the current experiment continues. From the extracted `IEEE_SP_2027_GITHUB_CLEAN` directory:
 
 ```bash
-bash LAUNCH.sh setup setup_01
-tail -f logs/setup_01.log
+bash PUSH_LIGHT_TO_GITHUB.sh
 ```
 
-Wait for `logs/setup_01.status` to report `exit_code=0`. Closing the terminal or stopping log viewing does not stop the nohup job on an ordinary host. For an explicit bootstrap interpreter use `RB_BASE_PYTHON=/absolute/path/to/python3.12 bash LAUNCH.sh setup setup_02`.
+This runs under nohup, prints its log/PID/status paths, and uses an existing project `.venv`. It clones `https://github.com/TanzimAhad7/Usenix2027_cycle1.git` into a separate temporary checkout, stages this complete clean code/light tree, commits and performs a normal push. Previous Git history is retained. Existing eligible remote result/foundation files and remote-only evidence are preserved; the cleanup cannot overwrite them with this older snapshot. If required runtime source has changed remotely since the supplied ZIP, publication stops rather than rolling it back. The original running directory, environments, GPU servers and raw results are never changed; publication does not require the experiment lock or an experiment restart. Existing Git/GitHub authentication and commit identity are needed. No force push occurs.
 
-## Supported research modes
+For a staged checkout without committing/pushing, use `bash PUSH_LIGHT_TO_GITHUB.sh --stage-only`. The log prints the prepared checkout path for inspection. If the project interpreter is elsewhere, set `IEEE_SP_RESEARCH_PYTHON=/absolute/project/.venv/bin/python`. The original configured interpreter at `/home/tahad/IEEE_SP/IEEE_SP_2027/.venv/bin/python` is the fallback. Publication uses no model inference.
 
-All setup/research jobs use **nohup**, a new log/PID/final status file, and the project venv. Use a unique run ID each time. These commands do different work and must not be confused:
+Only root README, required legal notices and dependency/environment metadata are published as documentation exceptions. Research authorities/reports/papers remain excluded. The latest supplied authority is included **locally** as `IEEE_SP_Standalone_Research_Authority_Current.md` and is ignored by Git. The root `AGENTS.md` is likewise a local operating guide. A source clone may need those local documents supplied separately. Model weights, venvs, caches, full raw traces and archives are excluded. Code/artifact file cap: 10 MiB; result-file cap: 2 MiB; total selected cap: 512 MiB.
+
+## Current scientific question and campaign
+
+When does generated reference support preserve the authorization of an actual effect sequence—and when does a protected workflow avoid reaching an otherwise susceptible admission path?
+
+The sole active implementation is `reference_discovery_parallel/` with entry point `RUN_PARALLEL_REFERENCE_GPU23.sh`.
+
+| Allocation | Qwen | Gemma | Total |
+|---|---:|---:|---:|
+| CORE autonomous workflows | 176 | 176 | 352 |
+| Ordinary execution/recovery | 72 | 72 | 144 |
+| Recipient/parameter boundary | 96 | 96 | 192 |
+| **Autonomous workflows** | **344** | **344** | **688** |
+| Authentic matched continuations | Up to 30 | Up to 30 | **Up to 60** |
+
+Policies per profile: OFF144, RELEASE144, EXACT_CAPACITY28 and RELEASE_G28. Comparators concentrate on UPFRONT neutral/count conditions. Other structures cover naturally consumed permission, distinct continuations, staged information, ordinary precommit failure and lost acknowledgement. Native DM/channel/email/banking effects span three simulated suites. The study is authored development evidence, not production prevalence, independent confirmation or an acceptance guarantee. The completed S1 held-candidate panel is not repeated.
+
+## Models, GPU policy and environments
+
+- **All model inference uses physical GPU 3**, UUID `GPU-4d6b17a4-4e6c-95b7-972d-7807122ad7c6`.
+- Qwen3-32B then Gemma-3-27B-IT run sequentially through one owned vLLM server on `127.0.0.1:18080`.
+- Two isolated research workers overlap independent workflows on the same endpoint. This offers batching/overlap, not a measured twofold speedup.
+- Shared GPU2 runs only a small optional accounting helper: no vLLM or model weights. The 40GB authorization is not implemented model-inference usage.
+- Use `.venv` for research and `.venv-serving` for vLLM. Existing working environments are reused. All research collection uses nohup, unique logs/status/results, a shared GPU lock and owned-process cleanup.
+
+| Model | Exact snapshot revision | Interface |
+|---|---|---|
+| Qwen/Qwen3-32B | `9216db5781bf21249d130ec9da846c4624c16137` | Cached native template / Hermes |
+| google/gemma-3-27b-it | `005ad3404e59d6023443cb575daa05336842228a` | Explicit Gemma tagged-JSON adapter / strict parser |
+
+Configured weight cache: `/home/tahad/ACM_SAC_2027/repairbench_gpu23_ready/.hf_cache`. That path supplies weights only; there is no dependency on the other project's code. New machines need the exact snapshots, CUDA/driver support and pinned environments. Tested versions include Python3.12.15, AgentDojo0.1.35, vLLM0.26.0, Torch2.11.0+cu130 and Transformers5.20.2. Current research pins are `requirements-reference-discovery.lock.txt`; existing environments should not be rebuilt for repository cleanup.
+
+## Verify or inspect saved progress
 
 ```bash
-# Recompute inherited frozen results and corrected primitive contrasts:
-bash LAUNCH.sh historical historical_01
-
-# Execute current source-bound R/B components and software tests:
-bash LAUNCH.sh components components_01
-
-# Regenerate historical displays from frozen evidence:
-bash LAUNCH.sh figures figures_01
+bash VERIFY_PROJECT.sh
+bash PROJECT_STATUS.sh
 ```
 
-Follow a job with `tail -f logs/RUN_ID.log`, inspect `logs/RUN_ID.status`, and retain `results/user_runs/RUN_ID/`. Historical mode runs 48 inherited scientific checks and a separate primitive correction/oracle report. Components run 8 project tests plus 15 native tests, then 98 controlled executions / 61 diagnostic assertions. Figures 2–6 are regenerated; figure 1 is copied because its producer was not supplied. None is fresh model inference.
+Verification checks required runtime hashes and the executable/frozen schedule with zero inference. Optional missing documentation and the full historical S1 archive are explicitly reported; they are not runtime dependencies. The embedded authenticated origin subset and every required source file remain checked. Missing an original full archive prevents full historical reanalysis even when current source verification passes.
 
-`bash VERIFY_PROJECT.sh` checks the delivered baseline bytes; intentional edits correctly appear as changes. `bash INIT_LOCAL_GIT.sh` creates a local repository without staging, committing or configuring a remote.
+The read-only status reader uses each profile's census and saved result files in this checkout. To inspect the original working run, pass `--run /home/tahad/IEEE_SP/IEEE_SP_2027/results/user_runs/YOUR_RUN_ID`. Parent-level census can remain SCHEDULED during child collection; a running Git snapshot is not atomic. No status reader starts or stops a model or corrects copied result files.
 
-## GPU model jobs
-
-Only **physical GPU 2 or 3** is authorized. The included adapted model client uses an already running Qwen server on port 18080 for GPU 2 or Gemma on 18081 for GPU 3. Socket-owner/descendant NVIDIA worker preflight refuses missing or mismatched placement; client CUDA visibility is not proof. `ss`, `ps` and `nvidia-smi` process visibility are required.
-
-Create `config/qwen-attestation.json` or `config/gemma-attestation.json` from `experiments/review_binding/attestation.example.json`, recording the actual deployment and physical `gpu_index`.
+For an intended **new research campaign only after the existing run closes**, with both working venvs available:
 
 ```bash
-export QWEN_MODEL_ID='YOUR_EXACT_SERVED_MODEL_ID'
-export QWEN_ATTESTATION="$PWD/config/qwen-attestation.json"
-bash LAUNCH.sh models qwen_development_01 2
-tail -f logs/qwen_development_01.log
+source .venv/bin/activate
+bash RUN_PARALLEL_REFERENCE_GPU23.sh
 ```
 
-For GPU 3, set `GEMMA_MODEL_ID` and `GEMMA_ATTESTATION` and use `bash LAUNCH.sh models gemma_development_01 3`. Separate jobs can use GPUs 2 and 3 concurrently. CPU modes use no GPU. Model weights, drivers and serving software are deployment resources, not an old-project dependency. Actual server/parser/role qualification is still required.
+Do not restart current collection to publish or clean GitHub. Each case retains 15 iterations, a20-minute limit,96 HTTP attempts and8,192 output tokens per request. There is no default global cutoff or measured completion-time guarantee. Missing authentic fork origins remain `NO_ELIGIBLE_CHECKPOINT`, not safe completion.
 
-## Scientific navigation
+## Evidence status in the supplied snapshot
 
-| Path | What it supplies |
+Completed native pilot:36 autonomous workflows and two conditional continuations; ten conditional slots ineligible. Preserve raw labels22/12/2 and the explicit protocol overlay27/7/2. Guarded S1 was protected; the guarded email violation began before hostile exposure.
+
+Completed S1 diagnostic:32 generated references,48 held admissions and80 native effects. Sixteen excess conditions violate,13 with a one-operation reference. These conditional comparisons are not48 autonomous guarded attacks. Lawful one-/two-operation controls and the capacity utility cost remain important.
+
+The supplied older Git index is dated **2026-10-26T15:01:14Z /09:01MDT** and is preserved at `provenance/github_snapshots/20261026T150114_INDEX.json`. That non-atomic run export has100 saved Qwen result files,95 producer-qualified:79 secure,18 safe incomplete,two violation and one unknown-incomplete labels. The child census separately records100 COMPLETE,one iteration-censored,one RUNNING and242 SCHEDULED;30 forks scheduled. The two violation summaries concern email subject mismatch without accepted actor-carrier exposure. No Gemma child results or terminal campaign archive were supplied. These are partial producer labels, not current live progress, independently audited campaign findings or injected duplicate witnesses.
+
+`GITHUB_LIGHT_ARTIFACTS.json` describes this clean exported tree or a subsequent publication snapshot, not later experiment progress. Light summaries never replace the complete local raw `.tar.gz` archive needed for scientific analysis.
+
+## Repository organization
+
+| Path | Role |
 |---|---|
-| `docs/RESEARCH_PLAN.md` | Complete standalone v6.2 authority |
-| `docs/PLAN_COVERAGE.csv` | All 16 sections and 14 appendices mapped to source, readiness and gaps |
-| `docs/REVIEWER_OBLIGATIONS.csv` | Prior criticisms → new scientific obligations → evidence/status |
-| `docs/WORK_PRODUCTS.csv`, `docs/DEFENSIBILITY_GAPS.md` | Eight plan deliverables and unresolved proof obligations |
-| `research_basis/studies/01_*` through `09_*` | Historical natural, source, unauthorized, threshold, three guard/integration, live and replay studies |
-| `research_basis/third_party/`, `implementation_evidence/`, `scripts/`, `figures/` | Exact inherited source, oracle, frozen checks, reproduction logic and displays |
-| `experiments/review_binding/` | Current native-runtime R/B engine, model client, tests, protocol and raw development evidence |
-| `provenance/` | Included/excluded file ledger, plan references, source availability and independent audit |
-| `references/` | Manuscript, reviews, incident and primary-literature source catalog and reading records |
-| `protocols/`, `research_records/` | Draft claim/confirmation templates and an initially empty real decision register |
-| `validation/` | Software/isolation validation; not completed new research |
-| `logs/`, `results/user_runs/` | Your fresh jobs and outputs |
+| `reference_discovery_parallel/` | Current collection, source/runtime adapters, observer, recovery, analysis and operational tests |
+| `RUN_PARALLEL_REFERENCE_GPU23.sh`, `VERIFY_PROJECT.sh`, `PROJECT_STATUS.sh` | Current top-level operational entry points |
+| `PARALLEL_REFERENCE_*MANIFEST.json`, `SOURCE_PROVENANCE_PARALLEL_REFERENCE.json` | Current scientific allocation and required runtime provenance |
+| `research_basis/` | Selected original study code/data and third-party integrations; original valid contributions remain available |
+| Earlier named study modules | Retained completed-study implementations at their original import paths |
+| `results/user_runs/` | Available light summaries, including failed, partial, negative and unknown records; full raw traces are excluded |
+| `archive/root_entrypoints/`, `archive/package_receipts/` | Old root launcher source and original build receipts, separated from current instructions |
+| `provenance/`, `protocols/`, `validation/` | Source/evidence lineage, prior declarations and scoped assurance records |
+| `ARCHIVE_MAP.json`, `REPOSITORY_CONTENTS.json` | Exact relocations, preserved hashes and inclusion/exclusion scope |
 
-## Readiness boundary
+Archived launchers retain their original bytes and original-root assumptions; they are source records, not runnable current entry points from the archive folder. Historical package manifests certify their original assemblies, not every merged lightweight checkout. Keep original lossless archives for faithful historical reproduction. No scientific module, frozen allocation or saved result label was modified for this cleanup.
 
-This is a **paper research foundation**, not completed evidence for a paper. R/B native components are implemented; their autonomous development client is adapted and no authoring model episode was completed. H24/P fixed-objective tasks, the missing pilot's D24/forks, conditional S128/A64/H64, independent human adjudication, claim-specific confirmation and the new manuscript still require actual work. See the coverage/gap tables rather than interpreting a test pass as completion.
-
-Historical live wrappers are preserved as source, with the URL/context/fresh-parent defects identified by the plan. They are not approved launch commands and may contain old GPU defaults. Use only the current root launcher. Original labels/results remain immutable; new corrections carry their own primitive calculations. Frozen reanalysis, regenerated plots, component execution and fresh model evidence remain distinct.
+Select the final paper from the evidence, including protection and counterexamples. Source integrity, software qualification, autonomous reachability, effect truth, causal identification, human semantic review and confirmation are distinct obligations.
