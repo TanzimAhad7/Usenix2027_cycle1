@@ -1,0 +1,3 @@
+# Consolidated foundation verification
+
+The existing freshly extracted environment was used to run both the updated launcher and the added protocol-declaration worker through nohup. Both finished with exit code 0. Component output contains 23 unit tests and 98 native executions / 61 assertions. No model episodes were run. Prior fresh-venv, frozen-analysis, input-corruption, isolation and figure checks are preserved in `validation/full_foundation/`; their scopes and limitations remain unchanged. New edits consist of reconciled navigation/research maps, proposed schedule declarations, and their launcher mode. The authoritative plan and native research engine are unchanged.

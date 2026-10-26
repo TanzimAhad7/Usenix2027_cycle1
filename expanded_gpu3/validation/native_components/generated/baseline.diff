@@ -1,0 +1,39 @@
+--- source_original
++++ baseline
+@@ -829,7 +829,7 @@
+                 reason = self._last_judge_reason
+                 if not reason:
+                     reason = "shadow_match(strict)" if survived else "shadow_block(strict)"
+-                call_reasons[_call_signature(call)] = reason
++                call_reasons[call.id] = reason
+                 if survived:
+                     executed_calls.append(call)
+                 else:
+@@ -856,21 +856,21 @@
+             )
+             if self.debug:
+                 logging.info("AttriGuard tools_executor_done (survived)")
+-            executed_by_sig = {
+-                _call_signature(result["tool_call"]): result for result in executed_results
++            executed_by_id = {
++                result["tool_call_id"]: result for result in executed_results
+             }
+ 
+             tool_results: list[ChatMessage] = []
+             for call in orig_calls:
+                 sig = _call_signature(call)
+-                judge_reason = call_reasons.get(sig, "shadow_match(strict)" if sig in shadow_sigs else "shadow_block(strict)")
++                judge_reason = call_reasons.get(call.id, "exact_signature" if sig in shadow_sigs else "source_decision")
+                 defense_state = {
+-                    "flag": sig in {_call_signature(c) for c in blocked_calls},
++                    "flag": call.id in {c.id for c in blocked_calls},
+                     "attenuated_external": last_attenuated_external or "",
+                     "judge_reason": judge_reason,
+                 }
+-                if sig in executed_by_sig:
+-                    msg = executed_by_sig[sig]
++                if call.id in executed_by_id:
++                    msg = copy.deepcopy(executed_by_id[call.id])
+                     msg["defense_state"] = defense_state
+                     if self._last_defense_input is not None:
+                         msg["defense_input"] = self._last_defense_input

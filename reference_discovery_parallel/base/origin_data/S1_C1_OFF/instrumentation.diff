@@ -1,0 +1,59 @@
+--- original_release
++++ telemetry_checkpoint_hooks
+@@ -693,7 +693,17 @@
+                 shadow_index += 1
+             _normalize_messages(shadow_history)
+ 
+-        _sync_shadow()
++        if getattr(self, "_study", None) is not None and self._study.restore is not None:
++            cp = self._study.restore
++            shadow_history = _study_native(cp["shadow_history"])
++            shadow_index = cp["shadow_index"]
++            has_tool_observation = cp["has_tool_observation"]
++            skip_next_audit = cp["skip_next_audit"]
++            last_attenuated_external = cp["last_attenuated_external"]
++            for key, value in cp["loop_attributes"].items():
++                setattr(self, key, copy.deepcopy(value))
++        else:
++            _sync_shadow()
+ 
+         def _annotate_tool_messages(tool_messages: list[ChatMessage], reason: str) -> None:
+             for msg in tool_messages:
+@@ -713,6 +723,7 @@
+             if last_message.get("role") != "assistant":
+                 break
+             orig_calls = last_message.get("tool_calls") or []
++            self._study.proposal(locals())
+             if not orig_calls:
+                 break
+ 
+@@ -798,11 +809,13 @@
+                     )
+                 except Exception:
+                     logging.info("AttriGuard shadow_llm_history=<unserializable>")
++            self._study.reference_active = True
+             shadow_query, shadow_runtime, shadow_env, shadow_messages, shadow_extra = self.llm.query(
+                 query, runtime, env, shadow_context, {}
+             )
+             if self.debug:
+                 logging.info("AttriGuard shadow_llm_query_done")
++            self._study.reference_active = False
+             shadow_calls = []
+             if shadow_messages and shadow_messages[-1].get("role") == "assistant":
+                 shadow_calls = shadow_messages[-1].get("tool_calls") or []
+@@ -848,6 +861,7 @@
+ 
+             if self.debug:
+                 logging.info("AttriGuard tools_executor_start (survived)")
++            self._study.admission(locals())
+             executed_results = _execute_calls(
+                 executed_calls,
+                 runtime,
+@@ -890,6 +904,7 @@
+                     if all_empty:
+                         skip_next_audit = True
+             messages = [*messages, *tool_results]
++            self._study.feedback(locals())
+             _sync_shadow()
+ 
+             if self.debug:

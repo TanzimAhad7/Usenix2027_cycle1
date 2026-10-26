@@ -1,0 +1,1 @@
+Frozen support implementation of the completed S1 study. Do not modify vendor bytes. The enclosing scaled protocol defines the new schedule. Original 32/48 manifest is retained solely for legacy qualification.

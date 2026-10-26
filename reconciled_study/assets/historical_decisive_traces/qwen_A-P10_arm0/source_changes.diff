@@ -1,0 +1,88 @@
+--- pinned_original
++++ M0_occurrence_hooks_True
+@@ -693,7 +693,17 @@
+                 shadow_index += 1
+             _normalize_messages(shadow_history)
+ 
+-        _sync_shadow()
++        if self._study_restore is not None:
++            cp = self._study_restore
++            shadow_history = _study_native(cp["shadow_history"])
++            shadow_index = cp["shadow_index"]
++            has_tool_observation = cp["has_tool_observation"]
++            skip_next_audit = cp["skip_next_audit"]
++            last_attenuated_external = cp["last_attenuated_external"]
++            for name, value in cp["loop_attributes"].items():
++                setattr(self, name, copy.deepcopy(value))
++        else:
++            _sync_shadow()
+ 
+         def _annotate_tool_messages(tool_messages: list[ChatMessage], reason: str) -> None:
+             for msg in tool_messages:
+@@ -713,6 +723,7 @@
+             if last_message.get("role") != "assistant":
+                 break
+             orig_calls = last_message.get("tool_calls") or []
++            self._study_proposal(self, locals())
+             if not orig_calls:
+                 break
+ 
+@@ -798,6 +809,7 @@
+                     )
+                 except Exception:
+                     logging.info("AttriGuard shadow_llm_history=<unserializable>")
++            shadow_context = self._study_reference(self, locals())
+             shadow_query, shadow_runtime, shadow_env, shadow_messages, shadow_extra = self.llm.query(
+                 query, runtime, env, shadow_context, {}
+             )
+@@ -829,11 +841,13 @@
+                 reason = self._last_judge_reason
+                 if not reason:
+                     reason = "shadow_match(strict)" if survived else "shadow_block(strict)"
+-                call_reasons[_call_signature(call)] = reason
++                call_reasons[call.id] = reason
+                 if survived:
+                     executed_calls.append(call)
+                 else:
+                     blocked_calls.append(call)
++
++            executed_calls, blocked_calls, call_reasons = _study_initial_select(self, orig_calls, shadow_calls, executed_calls, blocked_calls, call_reasons)
+ 
+             if self.debug:
+                 logging.info(
+@@ -856,21 +870,21 @@
+             )
+             if self.debug:
+                 logging.info("AttriGuard tools_executor_done (survived)")
+-            executed_by_sig = {
+-                _call_signature(result["tool_call"]): result for result in executed_results
++            executed_by_id = {
++                result["tool_call_id"]: result for result in executed_results
+             }
+ 
+             tool_results: list[ChatMessage] = []
+             for call in orig_calls:
+                 sig = _call_signature(call)
+-                judge_reason = call_reasons.get(sig, "shadow_match(strict)" if sig in shadow_sigs else "shadow_block(strict)")
++                judge_reason = call_reasons.get(call.id, "shadow_match(strict)" if sig in shadow_sigs else "shadow_block(strict)")
+                 defense_state = {
+-                    "flag": sig in {_call_signature(c) for c in blocked_calls},
++                    "flag": call.id in {c.id for c in blocked_calls},
+                     "attenuated_external": last_attenuated_external or "",
+                     "judge_reason": judge_reason,
+                 }
+-                if sig in executed_by_sig:
+-                    msg = executed_by_sig[sig]
++                if call.id in executed_by_id:
++                    msg = copy.deepcopy(executed_by_id[call.id])
+                     msg["defense_state"] = defense_state
+                     if self._last_defense_input is not None:
+                         msg["defense_input"] = self._last_defense_input
+@@ -890,6 +904,7 @@
+                     if all_empty:
+                         skip_next_audit = True
+             messages = [*messages, *tool_results]
++            self._study_batch(self, locals())
+             _sync_shadow()
+ 
+             if self.debug:

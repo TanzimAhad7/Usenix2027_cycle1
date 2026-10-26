@@ -1,0 +1,139 @@
+USENIX Security '27 Cycle 1 Paper #2797 Reviews and Comments
+===========================================================================
+Paper #2797 Influence Is Not Authority: When Causal Guardrail Signals Make
+Legitimate Tool Use Look Like an Attack in Tool-Using LLM Agents
+
+
+Review #2797A
+===========================================================================
+
+Paper summary
+-------------
+This paper examines the weaknesses in influence based causal defenses against indirect prompt injection. An LLM agent might legitimately need information from a tool (eg. to transfer money to a user, it might need their account number) to perform an action the user authorized, however, a defense that measures how much the tool influenced the action (since the account number came from the tool vs if a user provides it directly) can detect the dependence but not determine whether the action was authorized (since the same tool-output channel could instead carry an injected instruction directing the agent to a different recipient). 
+The authors demonstrate this with controlled scenarios where an authorized action relies either on user provided information or provided by a legitimate tool. To the defense, the tool supplied version appears more attack-like, even though the authorization remains unchanged. The authors then examine how this problem affects existing defenses such as the ones that rely on thresholds -- where (within the tested scenarios) none of the tested thresholds cleanly separate authorized and unauthorized actions. The paper also demonstrates that more complex defenses can behave unexpectedly in these situations. Importantly, the paper also shows that an agent completing a task doesn't necessarily mean the agent performed the specific action authorized by the user.
+The paper doesn't propose any new defenses, but audits existing causal defenses, identifying limitations in the signals used and how these defenses are evaluated.
+
+Overall merit
+-------------
+2. Weak reject
+
+Reviewer expertise
+------------------
+2. Some familiarity
+
+Reasons to accept
+-----------------
+The paper investigates a valid and timely question, and it designs the right experiment to answer it. Rather than comparing attacks to benign runs (where a lot changes at once), the authors hold the permission, the value, the action, and its intended effect all fixed, and vary only whether one needed value comes from —- the user or a legitimate tool. 
+
+This design clearly separates "the action depended on external information" from "the external information had authority to determine the action".
+
+I really liked the paper's breakdown of AttriGuard's routing —- it's a useful systems observation. Security systems need to also consider which actions reach the check in addition to how well the check is.
+
+A key strength of the paper is that the authors treat a block as a change in the agent's trajectory and not the end of it. The authors follow what happens and report that the agent recovered the authorized effect in 12/13 blocked unauthorized proposals, whereas all 9 blocked authorized proposals failed to preserve the effect. Hence the final security outcome isn't determined by the gate decision alone.
+
+The paper shows that agent task-success metrics can hide security-relevant outcomes.
+In the live study as well as the replay cases, task success sometimes did not match with whether the user-authorized action or effect was preserved.
+
+Reasons to reject
+-----------------
+1. The paper's experimentation and audit of existing defenses are useful but the underlying ideas are still incremental compared to existing work. The main idea that information can influence an action without having permission to choose it -- is reflected in existing systems. In addition to the works cited in this paper, DRIFT (https://proceedings.neurips.cc/paper_files/paper/2025/hash/77f3b26c7907aa27b207df9b9d43f29a-Abstract-Conference.html) and ACE (https://www.ndss-symposium.org/ndss-paper/ace-a-security-architecture-for-llm-integrated-app-systems/) (please also cite these), constrain -- using trusted plans and policies, how external information can affect execution. [4] separates task utility from security.
+While these works do not perform the paper's experiments, they do narrow the conceptual novelty. 
+
+2. The main experiment is limited with only 24 constructed cases, which may not capture the diversity of real agentic workflows. Even though the paper is careful about generalization claims, the abstract frames the findings broadly as a limitation of current SOTA influence based guardrails.
+
+3. There are many experiments in the paper, however, it's not established that the same failure occurs consistently across the evaluated defenses. The results are difficult to connect directly since the experiments use different defenses, models, tasks, and outcome measures.
+
+4. The writing needs to be improved; it is unusually compressed in different places. For example, in section 4.3 page 6, this line -- "Two pre-specified manipulation/selectivity checks also move in the expected action relative direction ...". This line is super packed and the reader is left wondering what these terms are. Another example, in the threat model, the authors mention "protected property" but don't clearly define it, so the reader has to infer its meaning.
+
+5. The paper did not test the original CausalArmor implementation but reconstructed its published score. While the reconstruction is reasonable, it doesn't show that the original system would make the same decisions on the tested cases.
+
+Feedback to authors
+-------------------
+Thank you for submitting your work to USENIX Security'27, however, there are still areas of improvement that would help strengthen this paper. Please also see the section above.
+
+The main evaluation needs to be expanded from the 24 constructed cases. Testing additional applications, action types, prompts, and agentic workflows would help understand how far the findings generalize. Additionally, how the cases are selected/excluded/revised should also be explained in the paper. 
+
+Please identify areas of the paper that are dense (writing wise -- see examples above), and add more explanation to ease the burden on the reader.
+
+Since the experiments use different defenses, models, tasks, outcomes, it'd be very useful to distinguish findings that reflect the same general problem vs findings that are more specific to defenses and implementations. This would help understand which results fit together and which findings may generalize.
+
+Questions for author response
+-----------------------------
+In the authors' opinion, which findings would generalize across defenses? And which ones can be considered specific to implementations?
+
+Ethics: flag for REC review
+---------------------------
+2. No
+
+Open science
+------------
+2. No
+
+
+
+Review #2797B
+===========================================================================
+
+Paper summary
+-------------
+This paper investigates the mismatch between influence and authority in tool-using LLM agents. When legitimate tools provide information required for execution, existing influence-based guardrails may incorrectly make authorized actions appear more attack-like. The authors conduct controlled experiments that vary only whether execution-critical information comes from the user or from a tool, and further evaluate how this mismatch affects detection, blocking, and final execution outcomes in defenses such as AgentWatcher and AttriGuard. The results suggest that influence signals can indicate what information affects an agent’s behavior, but cannot reliably determine whether that behavior is actually authorized by the user. The authors therefore argue that agent security evaluation should consider the full execution process and whether the user-authorized effect is ultimately preserved.
+
+Overall merit
+-------------
+1. Reject
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Reasons to accept
+-----------------
+- The paper addresses a practically relevant problem. Security in tool-using LLM agents and defenses against indirect prompt injection are important and timely topics.
+
+- The experimental analysis covers multiple stages. The authors examine different aspects ranging from influence signals, thresholding, and semantic monitoring to final execution outcomes.
+
+- The results are reported in reasonable detail. The paper provides confidence intervals, results under different experimental conditions, and some case-level analyses, while also discussing the limitations of the experiments.
+
+Reasons to reject
+-----------------
+- Limited novelty. The paper’s central idea, “influence is not authority,” overlaps to some extent with prior discussions of benign tool delegation and ambiguity in information provenance. The main contribution appears to be a more systematic experimental analysis of an already observed issue.
+
+- The scale of the core experiments is limited. The main controlled study includes only 24 matched cases, while the natural-task and end-to-end evaluations are also relatively small. The current results therefore mainly demonstrate that the issue can occur, but are insufficient to establish its prevalence or severity in realistic agent settings.
+
+- The main conclusion lacks sufficient end-to-end evidence. The paper clearly shows that changing the source of information can affect the detection signal, but it does not sufficiently demonstrate that this shift consistently leads to actual security failures or prevents legitimate authorized tasks from being completed.
+
+- The key end-to-end experiments do not fully support the practical risks emphasized by the paper. The AttriGuard experiments do not show the expected degradation of legitimate authorized tasks, and some results instead indicate that the defense substantially reduces unauthorized behavior. Therefore, the current evidence is not sufficient to establish that the identified issue causes significant practical security impact.
+
+- The different experiments do not form a complete validation chain. The paper separately studies detection signals, threshold decisions, defense blocking, and subsequent execution, but does not establish the continuous relationship among these stages within a unified experimental setting, nor whether they ultimately lead to actual security failures or disruption of legitimate authorized tasks.
+
+- The generalizability of some experimental findings is limited. CausalArmor is not evaluated through a complete reproduction of the original implementation, while some AttriGuard findings depend on specific versions and experimental settings. As a result, the current evidence is insufficient to support broader conclusions about more general agent guardrails.
+
+Feedback to authors
+-------------------
+1. Please clarify the distinction from prior work. In particular, the paper should explain more explicitly what new findings or contributions the “influence is not authority” perspective provides beyond existing discussions of benign tool delegation and ambiguity in information provenance.
+
+2. It would be helpful to expand the scale of the core experiments and realistic agent tasks. The current evaluation mainly shows that the phenomenon exists, but provides limited evidence about its prevalence and practical severity in realistic settings.
+
+3. A stronger end-to-end evaluation is needed. The paper should more directly demonstrate how changes in information source affect guardrail decisions and whether they ultimately lead to security failures or disruption of legitimate authorized tasks.
+
+4. The AttriGuard results deserve further discussion. Some results do not show the expected degradation of legitimate authorized tasks, which appears somewhat inconsistent with the practical risk emphasized by the paper.
+
+5. The presentation of figures and experimental results could also be improved. Some figures are information-dense and lack a clear visual hierarchy. Simplifying the figures, using a more consistent presentation style, and highlighting the key comparisons would improve readability.
+
+6. More discussion is also needed on the scope and generalizability of the conclusions. Evaluating additional agent guardrails or implementations would help establish whether the observed phenomena extend beyond the specific systems and settings considered here.
+
+Questions for author response
+-----------------------------
+1. Compared with prior work on benign tool delegation and ambiguity in information provenance, what are the main new findings and contributions of the “influence is not authority” perspective introduced in this paper?
+
+2. The core controlled study includes only 24 matched cases. Do the authors have results on a larger set of cases or more realistic agent tasks that could further demonstrate the prevalence and practical severity of the identified issue?
+
+3. The AttriGuard end-to-end experiments do not clearly show the expected degradation of legitimate authorized tasks, and some results instead suggest that the defense reduces unauthorized behavior. How do the authors interpret these findings, and how do they support the practical security risks emphasized in the paper?
+
+Ethics: flag for REC review
+---------------------------
+2. No
+
+Open science
+------------
+2. No
