@@ -1,0 +1,95 @@
+--- official_canonical_ast.py
++++ r3_instrumented_ast.py
+@@ -308,7 +308,22 @@
+                     shadow_history.append(copy.deepcopy(msg))
+                 shadow_index += 1
+             _normalize_messages(shadow_history)
+-        _sync_shadow()
++        _r3_start_iter = 0
++        if getattr(self, '_r3_resume', None) is not None:
++            _r3_saved = self._r3_resume
++            messages = _r3_saved['messages']
++            extra_args = _r3_saved['extra_args']
++            shadow_history = _r3_saved['shadow_history']
++            shadow_index = _r3_saved['shadow_index']
++            has_tool_observation = _r3_saved['has_tool_observation']
++            skip_next_audit = _r3_saved['skip_next_audit']
++            last_attenuated_external = _r3_saved['last_attenuated_external']
++            _r3_start_iter = _r3_saved['iteration']
++            self._last_judge_reason = _r3_saved['loop_state']['_last_judge_reason']
++            self._last_attenuated_external = _r3_saved['loop_state']['_last_attenuated_external']
++            self._last_defense_input = _r3_saved['loop_state']['_last_defense_input']
++        else:
++            _sync_shadow()
+ 
+         def _annotate_tool_messages(tool_messages: list[ChatMessage], reason: str) -> None:
+             for msg in tool_messages:
+@@ -318,13 +333,14 @@
+                 msg['defense_state'] = defense_state
+                 if self._last_defense_input is not None:
+                     msg['defense_input'] = self._last_defense_input
+-        for _ in range(self.max_iters):
++        for _ in range(_r3_start_iter, self.max_iters):
+             last_message = messages[-1]
+             if last_message.get('role') != 'assistant':
+                 break
+             orig_calls = last_message.get('tool_calls') or []
+             if not orig_calls:
+                 break
++            _R3_HOOK('proposal', locals())
+             if self.debug:
+                 logging.info('AttriGuard intercepted tool_calls=%s', orig_calls)
+             if skip_next_audit:
+@@ -341,7 +357,7 @@
+                 if new_tool_messages:
+                     _annotate_tool_messages(new_tool_messages, 'audit_skipped')
+                 if new_tool_messages:
+-                    all_empty = all((not _content_to_str(m.get('content')).strip() for m in new_tool_messages))
++                    all_empty = all((not _content_to_str(m.get('content')).strip() and (not self._r3_ctx.setting['error_aware'] or not m.get('error')) for m in new_tool_messages))
+                     if all_empty:
+                         skip_next_audit = True
+                 _sync_shadow()
+@@ -365,7 +381,7 @@
+                 if new_tool_messages:
+                     _annotate_tool_messages(new_tool_messages, 'audit_skipped')
+                 if new_tool_messages:
+-                    all_empty = all((not _content_to_str(m.get('content')).strip() for m in new_tool_messages))
++                    all_empty = all((not _content_to_str(m.get('content')).strip() and (not self._r3_ctx.setting['error_aware'] or not m.get('error')) for m in new_tool_messages))
+                     if all_empty:
+                         skip_next_audit = True
+                 _sync_shadow()
+@@ -385,7 +401,9 @@
+                     logging.info('AttriGuard shadow_llm_history=%s', json.dumps(shadow_context, ensure_ascii=False, default=str))
+                 except Exception:
+                     logging.info('AttriGuard shadow_llm_history=<unserializable>')
++            _R3_HOOK('reference_start', locals())
+             (shadow_query, shadow_runtime, shadow_env, shadow_messages, shadow_extra) = self.llm.query(query, runtime, env, shadow_context, {})
++            _R3_HOOK('reference_end', locals())
+             if self.debug:
+                 logging.info('AttriGuard shadow_llm_query_done')
+             shadow_calls = []
+@@ -395,6 +413,7 @@
+                 if shadow_messages and shadow_messages[-1].get('role') == 'assistant':
+                     logging.info('AttriGuard shadow_assistant_text=%s', _content_to_str(shadow_messages[-1].get('content')))
+                 logging.info('AttriGuard shadow_calls=%s', shadow_calls)
++            _R3_HOOK('reference_ready', locals())
+             shadow_sigs = {_call_signature(c) for c in shadow_calls}
+             executed_calls: list[FunctionCall] = []
+             blocked_calls: list[FunctionCall] = []
+@@ -421,6 +440,7 @@
+                     logging.info('AttriGuard survival_mode=strict')
+             if self.debug:
+                 logging.info('AttriGuard tools_executor_start (survived)')
++            _R3_HOOK('admission', locals())
+             executed_results = _execute_calls(executed_calls, runtime, env, self.tools_executor.output_formatter)
+             if self.debug:
+                 logging.info('AttriGuard tools_executor_done (survived)')
+@@ -444,7 +464,7 @@
+                     tool_results.append(msg)
+             if tool_results:
+                 if self.skip_empty_tool_results_audit:
+-                    all_empty = all((not _content_to_str(m.get('content')).strip() for m in tool_results))
++                    all_empty = all((not _content_to_str(m.get('content')).strip() and (not self._r3_ctx.setting['error_aware'] or not m.get('error')) for m in tool_results))
+                     if all_empty:
+                         skip_next_audit = True
+             messages = [*messages, *tool_results]

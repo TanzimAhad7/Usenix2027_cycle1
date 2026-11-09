@@ -1,0 +1,154 @@
+--- captured/reference_discovery_parallel/AGENTS.md
++++ recovery/reference_discovery_parallel/AGENTS.md
+@@ -1,37 +1,7 @@
+-# Reference-discovery invariants
++# Gemma recovery scope
+ 
+-The user authorizes scientifically justified exploration, not an arbitrary clock
+-target. Execute the same frozen344 workflows and at most30 eligible fresh continuations
+-per model, Qwen then Gemma on GPU3:688 autonomous roots plus up to60 continuations. No repeated S1 inference panel. No default
+-global wall-time cutoff; an optional explicit user limit preserves partial data.
++Execute only the previously unexecuted Gemma profile: unchanged344 autonomous conditions and up to30 eligible authentic continuations. Preserve Qwen; never rerun it here.
+ 
+-Use physical GPU3 and its pinned UUID, explicit existing research/serving virtual
+-environments, nohup, shared lock and unique logs. Only stop authenticated owned
+-processes. Never modify retained vendor source. Qualify effective request paths.
++Keep native tools, author guard, per-profile schedule, model revision, prompts, decoding, watchdogs and two isolated workers unchanged. The adapter accepts the observed XML envelope as well as the existing strict JSON envelope with unchanged arguments. Declare this Gemma profile change.
+ 
+-Recovery forks require a real safe prefix and a denied lawful sensitive batch,
+-selected in frozen order without looking at the parent's final outcome. Missing
+-origins remain NO_ELIGIBLE_CHECKPOINT. Do not manufacture a proposal to fill one.
+-Certify actual actor/reference/auxiliary input equality rather than assume it.
+-
+-Preserve raw state, requests, effects, errors, unknown and negative outcomes.
+-Conditional recovery is not autonomous incidence. No favorable redraws. Exact
+-capacity is per-proposal and exact-route only; the privileged contract gate is
+-an established positive control. Two model/interface profiles on authored tasks are not a population or
+-architecture-wide claim. Within-profile treatment contrasts are primary. Gemma
+-uses an explicit qualified adapter; cross-profile differences do not identify
+-model weights. Keep raw I/O synchronous, drain background token diagnostics, and
+-defer final compression until both model servers have stopped.
+-
+-Use exactly two isolated spawned episode workers per model with a rolling
+-dispatch window. Internal dependent calls stay ordered; neither thread-based
+-guard sharing nor cross-case response reuse is permitted. Both CORE tasks
+-and all other phase tasks must drain at phase boundaries. Choose authentic
+-origins in frozen CORE order, never completion order. Drain in-flight work
+-before an owned server restart. Record batching as a changed execution profile.
+-
+-GPU2 is shared and only the model-free integer auditor may use it. No vLLM
+-or model weights there. Respect the256 MiB allocator target,1 GiB measured
+-process soft budget and2 GiB free-memory condition. CUDA context overhead is
+-not covered by the allocator cap: exit the owned audit process on pressure
+-and preserve the documented CPU fallback. Never stop foreign GPU2 processes.
++Use existing parent project virtual environments and shared logs/gpu3_sequence.lock. Physical GPU3 only. No GPU2 workload. CPU template/parser qualification precedes startup; live qualification precedes science. Preserve all raw artifacts and stop only authenticated owned processes.
+--- captured/reference_discovery_parallel/integrity.py
++++ recovery/reference_discovery_parallel/integrity.py
+@@ -1,13 +1,13 @@
+-"""Read-only package and both frozen schedule checks; no research dependencies."""
++"""Recovery integrity and unchanged per-profile scientific schedule."""
+ from .common import read,file_hash
+ from .protocol import manifest
+ 
+ def verify_package(root):
+     recorded=read(root/'PARALLEL_REFERENCE_PACKAGE_MANIFEST.json')
+     for name,expected in recorded['files'].items():
+-        path=root/name
+-        if not path.is_file() or file_hash(path)!=expected:raise RuntimeError('Package drift: '+name)
+-    if manifest()!=read(root/'PARALLEL_REFERENCE_MODEL_MANIFEST.json'):raise RuntimeError('Per-profile manifest differs from executable schedule')
+-    from .campaign import plan
+-    if plan()!=read(root/'PARALLEL_REFERENCE_FROZEN_MANIFEST.json'):raise RuntimeError('Dual manifest differs from executable schedule')
++        if not (root/name).is_file() or file_hash(root/name)!=expected:raise RuntimeError('Package drift: '+name)
++    if manifest()!=read(root/'PARALLEL_REFERENCE_MODEL_MANIFEST.json'):raise RuntimeError('Per-profile schedule changed')
++    r=read(root/'GEMMA_RECOVERY_MANIFEST.json')
++    if (r['model_family'],r['autonomous_workflows'],r['conditional_slots_max'])!=('gemma',344,30):raise RuntimeError('Recovery scope changed')
++    if file_hash(root/'PARALLEL_REFERENCE_MODEL_MANIFEST.json')!=r['original_per_profile_manifest_sha256']:raise RuntimeError('Original scientific schedule changed')
+     return recorded
+--- captured/reference_discovery_parallel/models.py
++++ recovery/reference_discovery_parallel/models.py
+@@ -53,7 +53,7 @@
+     'qwen': dict(family='qwen', hub='Qwen/Qwen3-32B', alias='qwen3-32b-release-native',
+         revision='9216db5781bf21249d130ec9da846c4624c16137', interface='UNMODIFIED_CACHED_QWEN_TEMPLATE_HERMES'),
+     'gemma': dict(family='gemma', hub='google/gemma-3-27b-it', alias='gemma3-27b-it-tag-adapted',
+-        revision='005ad3404e59d6023443cb575daa05336842228a', interface='EXPLICIT_GEMMA_TAG_TEMPLATE_AND_STRICT_NONSTREAM_PARSER'),
++        revision='005ad3404e59d6023443cb575daa05336842228a', interface='GEMMA_STRICT_JSON_OR_XML_ENVELOPE_V2'),
+ }
+ 
+ def template_path(family):
+@@ -81,8 +81,20 @@
+         from .gemma_parser_plugin import ReferenceGemmaParser
+         parser=ReferenceGemmaParser(tokenizer)
+         from types import SimpleNamespace
+-        test=parser.extract_tool_calls('<tool_call>{"name":"qualification_echo","arguments":{"marker":"ARG"}}</tool_call>',SimpleNamespace())
+-        if not test.tools_called or len(test.tool_calls)!=1:raise RuntimeError('Installed parser API failed CPU extraction')
++        samples=[
++            '<tool_call>{"name":"qualification_echo","arguments":{"marker":"ARG"}}</tool_call>',
++            '<tool_call><name>qualification_echo</name><arguments>{"marker":"ARG"}</arguments></tool_call>',
++            '<tool_call><name>qualification_echo</name><arguments>{ "marker": "QUALIFICATION_ARGUMENT_4721" }</arguments></tool_call>',
++        ]
++        checks=[]
++        for sample in samples:
++            test=parser.extract_tool_calls(sample,SimpleNamespace())
++            expected='QUALIFICATION_ARGUMENT_4721' if 'QUALIFICATION_ARGUMENT_4721' in sample else 'ARG'
++            if not test.tools_called or len(test.tool_calls)!=1:raise RuntimeError('Installed parser API failed CPU extraction')
++            call=test.tool_calls[0]
++            if call.function.name!='qualification_echo' or json.loads(call.function.arguments)!={'marker':expected}:raise RuntimeError('Parser changed arguments')
++            checks.append(dict(raw=sample,name=call.function.name,arguments=json.loads(call.function.arguments)))
++        (directory/'parser_envelope_qualification.json').write_text(json.dumps(dict(status='PASS',model_inference=0,checks=checks),indent=2)+'\n')
+     custom=template_path(family)
+     template=custom.read_text() if custom else tokenizer.chat_template
+     if not isinstance(template,str):raise RuntimeError('Ambiguous effective template')
+--- captured/reference_discovery_parallel/sequence.py
++++ recovery/reference_discovery_parallel/sequence.py
+@@ -44,6 +44,7 @@
+     print('UPLOAD ARCHIVE:',target,flush=True);return target
+ 
+ def main(args):
++    if MODEL_FAMILY!='gemma':raise RuntimeError('Gemma-only recovery; use its launcher')
+     root=args.root.resolve();out=args.output.resolve() if args.output else root/'results/user_runs'/args.run_id;out.mkdir(parents=True,exist_ok=False)
+     logs=root/'logs';logs.mkdir(exist_ok=True);frozen=manifest();write(out/'FROZEN_MANIFEST.json',frozen)
+     census=dict(references={b['id']:'SCHEDULED' for b in frozen['blocks']},
+@@ -173,8 +174,15 @@
+                 if versions['vllm']!='0.26.0' or not versions['torch'].startswith('2.11.0'):raise RuntimeError('Unqualified serving versions; expected vLLM 0.26.0 / torch 2.11.0; no modification attempted')
+                 ninja=subprocess.run([str(python.parent/'ninja'),'--version'],capture_output=True,text=True,timeout=20,check=True)
+                 (serv/'ninja_version.txt').write_text(ninja.stdout)
++                state(status='CPU_TEMPLATE_QUALIFICATION')
++                template_env=env.copy();template_env['CUDA_VISIBLE_DEVICES']=''
++                template_dir=out/'template_qualification';template_dir.mkdir()
++                with (template_dir/'process.log').open('w') as template_log:
++                    subprocess.run([str(python),'-m','reference_discovery_parallel.models','--snapshot',str(snap),'--family','gemma','--out',str(template_dir)],cwd=root,env=template_env,stdout=template_log,stderr=subprocess.STDOUT,timeout=300,check=True)
++                if read(template_dir/'qualification.json')['status']!='PASS':raise RuntimeError('CPU template qualification failed; no model started')
++                write(out/'recovery_profile.json',read(root/'GEMMA_RECOVERY_MANIFEST.json'))
+                 cmd=server_command(python,snap);write(serv/'command.json',dict(command=cmd,cuda_visible_devices=GPU_UUID,
+-                    chat_template='Unmodified snapshot' if MODEL_FAMILY=='qwen' else 'Explicit Gemma tagged-JSON adapter; separately qualified profile',server_output_cap=8192,server_seed=20261025,
++                    chat_template='Unmodified snapshot' if MODEL_FAMILY=='qwen' else 'Explicit Gemma JSON/XML envelope adapter V2; separately qualified profile',server_output_cap=8192,server_seed=20261025,
+                     model_request_seed=None,model_defaults='generation-config=vllm; source request settings retained'))
+                 server_log=(serv/'server.log').open('w');server=subprocess.Popen(cmd,cwd=root,env=env,stdout=server_log,stderr=subprocess.STDOUT,start_new_session=True)
+                 owned={server.pid:serving.proc_start(server.pid)};write(serv/'owned_process.json',dict(pid=server.pid,start=owned[server.pid],process_group=server.pid))
+--- captured/reference_discovery_parallel/strict_tags.py
++++ recovery/reference_discovery_parallel/strict_tags.py
+@@ -10,6 +10,15 @@
+ 
+ def invalid_constant(value):raise ValueError('Non-JSON numeric constant: '+value)
+ 
++def envelope(body):
++    """Two declared envelopes; no guessed tool names or argument repair."""
++    body=body.strip()
++    if body.startswith('<'):
++        m=re.fullmatch(r'<name>([^<>&\s]+)</name>\s*<arguments>(.*)</arguments>',body,re.S)
++        if not m:raise ValueError('Invalid XML tool-call envelope')
++        return {'name':m.group(1),'arguments':json.loads(m.group(2),object_pairs_hook=unique_object,parse_constant=invalid_constant)}
++    return json.loads(body,object_pairs_hook=unique_object,parse_constant=invalid_constant)
++
+ def parse(text):
+     opening='<tool_call>';closing='</tool_call>'
+     if opening not in text and closing not in text:return [],text
+@@ -17,7 +26,7 @@
+     if not matches or len(matches)!=text.count(opening) or len(matches)!=text.count(closing):raise ValueError('Unbalanced or nested tool-call tags')
+     calls=[]
+     for match in matches:
+-        value=json.loads(match.group(1),object_pairs_hook=unique_object,parse_constant=invalid_constant)
++        value=envelope(match.group(1))
+         if not isinstance(value,dict) or set(value)!={'name','arguments'} or not isinstance(value['name'],str) or not value['name'] or not isinstance(value['arguments'],dict):raise ValueError('Tool call must contain exactly string name and object arguments')
+         calls.append(value)
+     content=re.sub(r'<tool_call>.*?</tool_call>','',text,flags=re.S).strip()
