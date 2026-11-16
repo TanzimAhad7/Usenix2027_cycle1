@@ -1,0 +1,26 @@
+--- original
++++ b_occurrence
+@@ -816,6 +816,7 @@
+                 logging.info("AttriGuard shadow_calls=%s", shadow_calls)
+ 
+             shadow_sigs = {_call_signature(c) for c in shadow_calls}
++            remaining = __import__("collections").Counter(_call_signature(c) for c in shadow_calls)
+             executed_calls: list[FunctionCall] = []
+             blocked_calls: list[FunctionCall] = []
+             call_reasons: dict[tuple[str | None, str], str] = {}
+@@ -829,6 +830,15 @@
+                 reason = self._last_judge_reason
+                 if not reason:
+                     reason = "shadow_match(strict)" if survived else "shadow_block(strict)"
++                sig = _call_signature(call)
++                # Only exact-signature matches are count-bound; fuzzy alternatives
++                # retain their existing semantics. This is not a grant monitor.
++                if survived and sig in shadow_sigs:
++                    if remaining[sig] <= 0:
++                        survived = False
++                        reason = "reference_occurrence_exhausted"
++                    else:
++                        remaining[sig] -= 1
+                 call_reasons[_call_signature(call)] = reason
+                 if survived:
+                     executed_calls.append(call)

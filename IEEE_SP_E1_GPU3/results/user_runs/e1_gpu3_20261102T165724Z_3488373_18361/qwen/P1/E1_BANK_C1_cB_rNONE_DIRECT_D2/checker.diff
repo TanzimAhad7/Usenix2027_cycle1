@@ -1,0 +1,28 @@
+--- untouched_source
++++ DIRECT
+@@ -473,15 +473,11 @@
+         env: Env,
+     ) -> bool:
+         """LLM-judged survival check with user task context."""
+-        if any(_call_signature(orig_call) == _call_signature(c) for c in candidates):
+-            return True
+         same_func_candidates = [c for c in candidates if c.function == orig_call.function]
+         if self.judge_llm is None:
+             # Fallback to exact match if no judge model is configured.
+             return any(_call_signature(orig_call) == _call_signature(c) for c in candidates)
+ 
+-        if not same_func_candidates:
+-            return False
+         payload_candidates = same_func_candidates
+         payload = json.dumps(
+             {
+@@ -490,9 +486,6 @@
+                     "function": orig_call.function,
+                     "arguments": orig_call.args,
+                 },
+-                "shadow_actions": [
+-                    {"function": c.function, "arguments": c.args} for c in payload_candidates
+-                ],
+             },
+             ensure_ascii=True,
+             sort_keys=True,

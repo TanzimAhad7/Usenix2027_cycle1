@@ -1,0 +1,178 @@
+--- source_original
++++ reference_capacity
+@@ -516,118 +516,13 @@
+                 )
+             else:
+                 raise
+-        logprobs = extra.get("logprobs") if isinstance(extra, dict) else None
+         raw = ""
+-        if self.debug:
+-            logging.info("fuzzy mode: judge_llm_output=%s", out_messages)
+         for msg in reversed(out_messages):
+             if msg.get("role") == "assistant":
+                 raw = _content_to_str(msg.get("content"))
+                 break
+-        try:
+-            data = json.loads(raw)
+-            survive = data.get("survive")
+-            if isinstance(survive, bool):
+-                self._last_judge_reason = data.get("reason")
+-                if logprobs is not None:
+-                    def _get_content(obj):
+-                        if hasattr(obj, "content"):
+-                            return getattr(obj, "content")
+-                        if isinstance(obj, dict):
+-                            return obj.get("content")
+-                        return None
+-
+-                    def _get_token(entry):
+-                        if hasattr(entry, "token"):
+-                            return getattr(entry, "token")
+-                        if isinstance(entry, dict):
+-                            return entry.get("token")
+-                        return None
+-
+-                    def _get_logprob(entry):
+-                        if hasattr(entry, "logprob"):
+-                            return getattr(entry, "logprob")
+-                        if isinstance(entry, dict):
+-                            return entry.get("logprob") or entry.get("log_prob")
+-                        return None
+-
+-                    def _get_top_logprobs(entry):
+-                        if hasattr(entry, "top_logprobs"):
+-                            return getattr(entry, "top_logprobs")
+-                        if isinstance(entry, dict):
+-                            return entry.get("top_logprobs")
+-                        return None
+-
+-                    def _normalize_token(token: str) -> str:
+-                        return token.strip().lower().strip(' \t\r\n"\'`,}]')
+-
+-                    content = _get_content(logprobs)
+-                    if isinstance(content, list):
+-                        # Reconstruct token offsets to find the "survive" field's value token.
+-                        positions: list[tuple[int, str, int]] = []
+-                        cursor = 0
+-                        for idx, entry in enumerate(content):
+-                            token = _get_token(entry)
+-                            if token is None:
+-                                continue
+-                            positions.append((idx, token, cursor))
+-                            cursor += len(token)
+-
+-                        raw_lower = raw.lower()
+-                        survive_pos = raw_lower.find('"survive"')
+-                        if survive_pos == -1:
+-                            survive_pos = raw_lower.find("survive")
+-
+-                        target_idx = None
+-                        for idx, token, start in positions:
+-                            norm = _normalize_token(token)
+-                            if norm in ("true", "false") and (survive_pos == -1 or start >= survive_pos):
+-                                target_idx = idx
+-                                break
+-
+-                        if target_idx is None:
+-                            # Fallback: take the last true/false token if we couldn't align by position.
+-                            for idx, token, _ in reversed(positions):
+-                                if _normalize_token(token) in ("true", "false"):
+-                                    target_idx = idx
+-                                    break
+-
+-                        if target_idx is not None:
+-                            entry = content[target_idx]
+-                            top_list = _get_top_logprobs(entry) or []
+-                            prob_map: dict[str, float] = {}
+-
+-                            def _add_prob(tok: str | None, lp):
+-                                if tok is None or lp is None:
+-                                    return
+-                                try:
+-                                    prob_map[_normalize_token(tok)] = float(lp)
+-                                except Exception:
+-                                    return
+-
+-                            for cand in top_list:
+-                                tok = _get_token(cand)
+-                                lp = _get_logprob(cand)
+-                                _add_prob(tok, lp)
+-
+-                            # Also add the sampled token logprob as a fallback.
+-                            _add_prob(_get_token(entry), _get_logprob(entry))
+-
+-                            true_lp = prob_map.get("true")
+-                            false_lp = prob_map.get("false")
+-                            if true_lp is not None and false_lp is not None:
+-                                if self.debug:
+-                                    logging.info(
+-                                        "fuzzy mode: survive_logprobs true=%s false=%s",
+-                                        true_lp,
+-                                        false_lp,
+-                                    )
+-                                survive = true_lp >= false_lp
+-                return survive
+-        except Exception:
+-            pass
+-        self._last_judge_reason = None
+-        return "true" in raw.lower()
++        return _expanded_strict(self, raw)
++
+     def query(
+         self,
+         query: str,
+@@ -816,24 +711,8 @@
+                 logging.info("AttriGuard shadow_calls=%s", shadow_calls)
+ 
+             shadow_sigs = {_call_signature(c) for c in shadow_calls}
+-            executed_calls: list[FunctionCall] = []
+-            blocked_calls: list[FunctionCall] = []
+-            call_reasons: dict[tuple[str | None, str], str] = {}
+-            for call in orig_calls:
+-                if self.survival_mode == "fuzzy":
+-                    survived = self._fuzzy_survive(call, shadow_calls, query, runtime, env)
+-                else:
+-                    # strict: exact signature match, no LLM judge
+-                    survived = _call_signature(call) in shadow_sigs
+-                    self._last_judge_reason = None
+-                reason = self._last_judge_reason
+-                if not reason:
+-                    reason = "shadow_match(strict)" if survived else "shadow_block(strict)"
+-                call_reasons[_call_signature(call)] = reason
+-                if survived:
+-                    executed_calls.append(call)
+-                else:
+-                    blocked_calls.append(call)
++            executed_calls, blocked_calls, call_reasons = _expanded_decide(
++                self, orig_calls, shadow_calls, query, runtime, env)
+ 
+             if self.debug:
+                 logging.info(
+@@ -856,21 +735,21 @@
+             )
+             if self.debug:
+                 logging.info("AttriGuard tools_executor_done (survived)")
+-            executed_by_sig = {
+-                _call_signature(result["tool_call"]): result for result in executed_results
++            executed_by_id = {
++                result["tool_call_id"]: result for result in executed_results
+             }
+ 
+             tool_results: list[ChatMessage] = []
+             for call in orig_calls:
+                 sig = _call_signature(call)
+-                judge_reason = call_reasons.get(sig, "shadow_match(strict)" if sig in shadow_sigs else "shadow_block(strict)")
++                judge_reason = call_reasons.get(call.id, "exact_signature" if sig in shadow_sigs else "source_decision")
+                 defense_state = {
+-                    "flag": sig in {_call_signature(c) for c in blocked_calls},
++                    "flag": call.id in {c.id for c in blocked_calls},
+                     "attenuated_external": last_attenuated_external or "",
+                     "judge_reason": judge_reason,
+                 }
+-                if sig in executed_by_sig:
+-                    msg = executed_by_sig[sig]
++                if call.id in executed_by_id:
++                    msg = copy.deepcopy(executed_by_id[call.id])
+                     msg["defense_state"] = defense_state
+                     if self._last_defense_input is not None:
+                         msg["defense_input"] = self._last_defense_input

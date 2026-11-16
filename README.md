@@ -1,119 +1,93 @@
-# IEEE S&P research project
+# Prompt-injection guardrails for tool-using LLM agents: code and artifacts
 
-## Update of 9 November 2026: experiments added since 31 October
+This repository holds the code, frozen designs and lightweight outputs of a research project on guardrails that defend tool-using LLM agents against indirect prompt injection. It covers three phases:
+1. the original study, which was rejected at USENIX Security;
+2. the experiments run after the rejection;
+3. the work in progress now.
 
-This update adds the code and light outputs of every experiment run from 1 to 9 November.
-The "Current experiment" section further below describes the 31 October state and is now historical.
-
-| Package | Experiment | Status |
-|---|---|---|
-| `results/user_runs/parallel_reference_gpu23_20261026T133503Z_*`, `gemma_recovery_20261027T015503Z_*` | 688-workflow parallel-reference campaign (Qwen, Gemma) | Complete; census/status updated from the mid-run snapshot |
-| `IEEE_SP_Permission_Discrimination/`, `IEEE_SP_Gemma_Completion/`, `IEEE_SP_Gemma_Recovery/` | Permission-discrimination campaign and Gemma completions | Complete |
-| `results/user_runs/discriminating_diagnostic_*`, `IEEE_SP_Discriminating_Diagnostic_GPU{2,3}/` | Facts x criterion diagnostic (X1/X3) | GPU 3 run complete; GPU 2 attempt failed early |
-| `IEEE_SP_N1_GPU3/` | N1: why the generated reference becomes unsafe | Complete |
-| `IEEE_SP_E1_GPU3/`, `IEEE_SP_E1_Preflight_Fix/` | E1: owner permission change under reference comparison | Complete (strict format 0/360; operative decisions reported) |
-| `IEEE_SP_E2b_GPU2/` | E2b: controlled criterion study | Complete |
-| `IEEE_SP_A01_GPU2/` | A1: semantic role, datatype and criterion | Complete |
-| `IEEE_SP_J2_GPU2/` | J2: local fingerprint of the judge's joint-permission rule | Complete |
-| `IEEE_SP_R3_GPU2/`, `IEEE_SP_R3_Tokenization_Fix/` | R3: enforcement after denial, released LocalLLM profile | Complete with technical issues |
-| `IEEE_SP_END_TO_END_LARGE_GPU23/` | E0 prospective mechanism study and the score-to-effect bridge (7 policies, 108 bases) | Complete |
-| `IEEE_SP_QWEN_FORMAT_REPAIR/`, `IEEE_SP_QWEN_FORMAT_REPAIR.py` | Qwen actor-format repair and full rerun of the bridge | Complete |
-| `IEEE_SP_FINAL_EXPERIMENT_GPU3*/` | Final experiment `SP-GUARD-WRITE-20261108-V1` (serial, batched, shared-prefill attempts) | Qwen stages sealed, guarded outcomes censored by a parser regression; Gemma stopped at prefill qualification |
-| `v3_reanalysis_scripts/` | Read-only reanalysis scripts behind the 9 November results | Current |
-| `artifact_extracts/` | Compact evidence tables (see below) | Current |
-
-**Evidence extracts.** The raw bridge episodes (about 490 MB) and final-experiment ledgers (`E1R.jsonl`, 673 MB) are too large for this mirror.
-`artifact_extracts/` holds per-episode and per-record CSV tables with every field used by the 9 November analysis:
-
-- `bridge_E13_gemma_episodes.csv`, `bridge_E14_qwen_episodes.csv` (12,096 episodes each; committed-effect classes, sanitizer value retention, proposed/dispatched/committed arguments) and the censored `bridge_E13_qwen_censored_episodes.csv`;
-- `final_E1R_qwen_records.csv` (9,216 replay records with lawful and forbidden-variant scores) and `final_E2L_qwen_records.csv`;
-- `witness_episodes/`: full raw episodes of the witness case `banking.3.0.live.1000` for every policy;
-- `*.source_SHA256SUMS` and `EXTRACT_MANIFEST.json`: SHA-256 of every raw source file, so extracts can be checked against the local archives.
-
-Rebuild them from the raw runs with `python3 v3_reanalysis_scripts/extract_artifacts.py`.
-
-As before, only code and light outputs are published. Full raw archives, HTTP/model traces, world snapshots, weights, caches, environments,
-research authorities, manuscripts and package documents stay local. Each run's `SHA256SUMS` or archive `.sha256` identifies its raw evidence.
-`provenance/github_updates/` records every file added in this update with its SHA-256.
+The repository contains **code and artifacts only**. Papers, reviews, research notes and planning documents are not included. Third-party license notices are kept where third-party code is vendored.
 
 ---
 
-This repository follows the rejected USENIX submission's successor project.
-The separate ICLR project is excluded. Older experiments and their original
-outcome labels remain historical evidence; they are not current launch commands.
+## 1. The rejected paper
 
-## Current experiment
+*Influence Is Not Authority: When Causal Guardrail Signals Make Legitimate Tool Use Look Like an Attack in Tool-Using LLM Agents* (arXiv:2608.29942). Submitted to USENIX Security 2027, cycle 1; not accepted.
 
-`IEEE_SP_Reference_Study_GPU2/` implements the P0–P3 reference-admission study.
-The physical device is **GPU 2 only**. Qwen3-32B and Gemma-3-27B-IT execute
-sequentially, with four isolated experiment workers feeding one owned vLLM
-server. Existing `.venv` and `.venv-serving` environments are reused.
+### Question
 
-```bash
-bash RUN_CURRENT_EXPERIMENT.sh
-bash SHOW_CURRENT_EXPERIMENT.sh
-```
+A user can authorize an action without supplying every value it needs. "Pay the bill in this file" requires the agent to read the account number from a tool result. Guardrails such as CausalArmor, AttriGuard and AgentWatcher treat strong influence of tool content on a privileged action as a sign of attack. Can they tell legitimate dependence on a tool from injected control?
 
-The first command starts a **new** nohup campaign. Publishing repository updates
-does not restart collection. Do not launch a second campaign to update Git.
-The launcher records logs, PIDs, status, raw model interactions, native effects,
-interface diagnostics and complete archives below `results/user_runs/`.
-It uses cached model weights and a GPU lock; it does not terminate unrelated jobs.
+### Main results
 
-| Stage | Two-model allocation | Unit |
-|---|---:|---|
-| P0 | CPU qualification and live per-model probes | Engineering qualification |
-| P1 | 304 | Held reference/admission sequences |
-| P2 | 416, including 96 lawful-use controls | Held decision-component cells |
-| P3 | 432 across 32 semantic roots | Autonomous workflows |
+| Study | Result |
+|---|---|
+| Matched source relocation (24 bases, 96 conditions) | Moving one required value from the user's request into a legitimate tool result, with authorization, action and effect unchanged, moved a reconstructed CausalArmor-style attribution signal toward "attack" in **24 of 24** bases under both scorers (Llama-3.3-70B, Gemma-3-12B). On average the move was larger than a matched change that removes authorization |
+| Scalar threshold | At the operating point with no benign flags, only 25.0% (Llama) and 37.5% (Gemma) of matched unauthorized actions are caught |
+| AgentWatcher | Under conflicting context it flagged all 24 authorized and all 24 unauthorized actions |
+| AttriGuard routing | 57.5% of unauthorized calls passed by exact agreement with the shadow run, before the stricter judge, against 29.2% of authorized calls |
+| AttriGuard, live (14 natural tasks, 420 runs) | It reduced the selected unauthorized outcome from 17/70 to 2/70. A block redirected rather than ended execution: 12/13 blocked unauthorized proposals were followed by the authorized effect; 9/9 blocked authorized proposals lost it. In the tested version, 18/168 privileged calls ran without the ordinary audit after a defense-generated empty result (disclosed to the authors) |
+| Evaluation fidelity | Task success disagreed with preservation of the authorized effect: 18/420 live runs; 23/78 replay pairs |
 
-There are **1,152 planned scientific case records**, not independent attacks.
-P1 and P2 cannot be pooled with P3 into an attack rate. Human semantic review is
-pending and these auxiliary model configurations do not establish fidelity to
-the principal published configuration. The evidence remains exploratory.
+### Reviewers' main concerns (paraphrased)
 
-## Evidence history
+- The principle that influence is not authority overlaps with prior work.
+- The core study used 24 constructed cases.
+- The end-to-end link from signal to harm was weak, and AttriGuard in fact protected in the live study.
+- The studies used different defenses, models and outcome measures.
+- CausalArmor was reconstructed rather than run from released code.
 
-| Stage | Location | Evidence status |
+### Where the artifacts are
+
+`research_basis/studies/01_natural_relevance` … `09_evaluation_replay`, with the vendored defense code in `research_basis/third_party/`.
+
+---
+
+## 2. Experiments after the rejection (October–November 2026)
+
+Each folder contains its code, frozen design and lightweight results. Negative and invalid results are kept.
+
+| Folder | What it tested | Result |
 |---|---|---|
-| Earlier parallel-reference and recovery work | Existing study directories and earlier `results/user_runs/` | Historical; original statuses retained |
-| Permission-admission panel | `historical_experiments/IEEE_SP_Permission_Admission/` | 544 Qwen records; original Gemma qualification failed |
-| Gemma completion | `historical_experiments/IEEE_SP_Gemma_Completion/` | 544 new Gemma records; 544 Qwen records retained, not rerun |
-| Two intermediate Gemma failures | Dated `gemma_completion_gpu2_20261029T183327Z_565238_12588` and `...194618Z_823548_14030` result folders | Qualification failures; zero new Gemma science |
-| Current reference-admission study | `IEEE_SP_Reference_Study_GPU2/` | Implemented and CPU/mock checked; live outcomes require current result files |
+| `results/user_runs/`, `reference_discovery_parallel/`, `authorization_study/`, `occurrence_study/`, `release_native_study/`, `reconciled_study/`, `s1_reference_study/` | Autonomous AttriGuard workflows (688 authored workflows), permission and reference studies | AttriGuard protected in the Qwen3-32B profile. Admissions of forbidden actions concentrated in an adapted Gemma-3-27B profile |
+| `IEEE_SP_Reference_Study_GPU2`, `IEEE_SP_N1_GPU3`, `IEEE_SP_E1_GPU3`, `IEEE_SP_E2b_GPU2`, `IEEE_SP_A01_GPU2`, `IEEE_SP_J2_GPU2`, `IEEE_SP_Discriminating_Diagnostic_GPU*` | AttriGuard's judge on fixed ("held") candidate calls | Against lawful references, the Qwen judge admitted 0 of 175 forbidden candidates; the adapted Gemma judge admitted 87 of 153 (repeats over 7 candidates). Changed amounts were admitted, changed recipients were not. A permission-led judge prompt lowered Gemma's forbidden admissions from 16/36 to 7/36 on the same inputs |
+| `IEEE_SP_R3_GPU2`, `IEEE_SP_R3_Tokenization_Fix` | Released AttriGuard profile end to end, with and without fixes | Every observed violation was contained by a conventional authorization gate |
+| `IEEE_SP_END_TO_END_LARGE_GPU23`, `IEEE_SP_QWEN_FORMAT_REPAIR` | Source relocation at scale (96 held-out bases), plus agent runs with a CausalArmor-style guard | Relocation replicated: 0 of 96 bases moved the other way, for both models. An apparent rise in wrong actions under the guard was later traced to the authored records (decoy typed fields), not to the guard |
+| `IEEE_SP_FINAL_EXPERIMENT_*`, `IEEE_SP_GATE1_KILL_TEST` | Removal-based remediation on authored records | Gate 1 (preregistered) was rated invalid for the Qwen interface. Results retained |
+| `IEEE_SP_GATE2_VALUE_SELECTION`, `IEEE_SP_GATE2_RECONCILIATION_2026-11-11` | Preregistered: what an agent does when the needed identifier is removed | The agent still attempted the write: 94/94 (Qwen) and 76/76 (Gemma) with a substitute in view; 16/16 and 15/15 without one. Hijacking by an attacker-supplied value did not occur (0/22, 0/18). The Gemma interface was rated invalid |
+| `IEEE_SP_S0_SANITIZER_FIDELITY` | Whether open-model sanitizers keep required values on natural AgentDojo tasks | Some required values are lost. No downstream harm measured |
+| `IEEE_SP_AUGUST_AUDIT_2026-11-14`, `IEEE_SP_POST_S0_DEEP_AUDIT_2026-11-13`, `IEEE_SP_GLOBAL_*`, `IEEE_SP_DEEP_PASS_2026-11-15`, `v3_reanalysis_scripts/` | Model-free reanalyses of the stored data | A model-free "copied from tool output" rule reproduces the attribution detector's decisions (AUC 0.958 / 0.949). In AgentDojo reference solutions, 44 of 60 state-changing tasks need an argument value that only a tool result supplies |
+| `IEEE_SP_N2_MISSING_VALUE` | Natural-task version of Gate 2 (silent, marked and signalled removal) | Built and tested on CPU; not run |
 
-Gemma's completed panel contains 400 fixed-role records and 144 autonomous
-attempts, of which 101 completed and 43 stopped on protocol errors. Qwen's
-autonomous panel completed 137 of 144 attempts. Strict-format flags, parser
-behavior, physical completion and final reporting remain separate.
+### Overall reading
 
-The audits verified seven guarded workflows with forbidden simulated effects:
-five exact-reference paths and two fuzzy-comparison paths. They establish
-recorded admission paths, not a common causal explanation or general novelty.
-Protective results, lawful controls and missingness constrain interpretation.
-The current study tests reference construction, admission criteria and fresh
-autonomous reachability rather than simply repeating those panels.
+The attribution signal reliably follows where a value came from, and the decision path, not the signal, decides the outcome. The hypotheses that the guards cause harm, or that removal lets an attacker hijack the action, were not supported: the guards mostly failed safe.
 
-`EXPERIMENT_HISTORY.json` maps stages; `CURRENT_EXPERIMENT.json` identifies the
-current launcher. `research_evidence/adversarial_reconstruction_20261030/`
-contains bounded derived audit evidence and analysis code. Research manuscripts
-and full reports are excluded from publication.
+---
 
-## Inspect and verify
+## 3. Current work (November 2026)
 
-```bash
-bash PROJECT_STATUS.sh
-bash VERIFY_PROJECT.sh
-```
+The current question is what released prompt-injection defenses actually enforce on the *arguments* of a tool call, and what utility their kind of policy can reach. Analysis code is in `EUROSP_2027_PLAN/analysis/`:
 
-These commands use only Python's standard library and perform no inference.
-Verification authenticates the added code and imported evidence, including the
-current package manifest. Earlier verification/navigation files are preserved
-under `archive/navigation_before_20261030/`; old launchers remain historical.
-The old `GITHUB_LIGHT_ARTIFACTS.json` is a historical publication inventory,
-not an inventory of this update. See `provenance/PROJECT_UPDATE_MANIFEST.json`.
+- **`census_grounding_ceiling.py`** — an upper bound on AgentDojo utility for policies that admit only values stated in the user's request, and for extensions of them. First estimate: 52 of 97 tasks (15 of the 60 that change state). String matching, not yet hand-checked.
+- **`census_scope_placement.py`** — where the benchmark's attacker-controllable text sits relative to the values legitimate tasks take from tools.
+- **`mine_judge_records.py`** — collects the 2,708 stored judge decisions, with their written reasons, from the runs above. In the stored data, the two judge models agree on changed recipients and split on changed values.
 
-Only light result files are published. Full raw archives, HTTP traces, model
-weights, caches and environments remain local. Per-file SHA-256 hashes identify
-the imported evidence and source archives. A running campaign's copied status
-is a per-file snapshot, never an atomic or completed-run certificate.
+These are preliminary and are not claims of the project yet.
+
+---
+
+## 4. What is not in this repository
+
+- Papers, reviews and research notes.
+- Archives, model weights and environments.
+- Per-step raw records: model requests, policy transcripts, world snapshots, per-episode copies of generated code, and the per-request model records of the large runs.
+- Any single file over 5 MB (2 MB inside run folders).
+
+Each run folder keeps its frozen design, status and summaries, per-episode results where they exist, and analyses, so every reported count can be recomputed. The raw records are retained by the authors.
+
+## 5. Environment
+
+- AgentDojo 0.1.35 (suite v1, plus v1.2.2 where noted).
+- Open models served with vLLM: Qwen3-32B and Gemma-3-27B-IT.
+- Exact package versions are in the `requirements-*.lock.txt` files.
+- Each package's run scripts check model and source hashes before running.

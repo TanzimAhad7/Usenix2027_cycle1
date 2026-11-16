@@ -1,0 +1,45 @@
+--- pinned_original
++++ M0_original_hooks_True
+@@ -693,7 +693,17 @@
+                 shadow_index += 1
+             _normalize_messages(shadow_history)
+ 
+-        _sync_shadow()
++        if self._study_restore is not None:
++            cp = self._study_restore
++            shadow_history = _study_native(cp["shadow_history"])
++            shadow_index = cp["shadow_index"]
++            has_tool_observation = cp["has_tool_observation"]
++            skip_next_audit = cp["skip_next_audit"]
++            last_attenuated_external = cp["last_attenuated_external"]
++            for name, value in cp["loop_attributes"].items():
++                setattr(self, name, copy.deepcopy(value))
++        else:
++            _sync_shadow()
+ 
+         def _annotate_tool_messages(tool_messages: list[ChatMessage], reason: str) -> None:
+             for msg in tool_messages:
+@@ -713,6 +723,7 @@
+             if last_message.get("role") != "assistant":
+                 break
+             orig_calls = last_message.get("tool_calls") or []
++            self._study_proposal(self, locals())
+             if not orig_calls:
+                 break
+ 
+@@ -798,6 +809,7 @@
+                     )
+                 except Exception:
+                     logging.info("AttriGuard shadow_llm_history=<unserializable>")
++            shadow_context = self._study_reference(self, locals())
+             shadow_query, shadow_runtime, shadow_env, shadow_messages, shadow_extra = self.llm.query(
+                 query, runtime, env, shadow_context, {}
+             )
+@@ -890,6 +902,7 @@
+                     if all_empty:
+                         skip_next_audit = True
+             messages = [*messages, *tool_results]
++            self._study_batch(self, locals())
+             _sync_shadow()
+ 
+             if self.debug:

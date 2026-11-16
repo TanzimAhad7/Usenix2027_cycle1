@@ -1,0 +1,67 @@
+--- receipt_corrected_baseline
++++ passive_hooks_and_restore
+@@ -693,7 +693,17 @@
+                 shadow_index += 1
+             _normalize_messages(shadow_history)
+ 
+-        _sync_shadow()
++        if getattr(self, "_targeted_restore", None) is not None:
++            cp = self._targeted_restore
++            shadow_history = _targeted_native(cp["shadow_history"])
++            shadow_index = cp["shadow_index"]
++            has_tool_observation = cp["has_tool_observation"]
++            skip_next_audit = cp["skip_next_audit"]
++            last_attenuated_external = cp["last_attenuated_external"]
++            for name, value in cp["loop_attributes"].items():
++                setattr(self, name, copy.deepcopy(value))
++        else:
++            _sync_shadow()
+ 
+         def _annotate_tool_messages(tool_messages: list[ChatMessage], reason: str) -> None:
+             for msg in tool_messages:
+@@ -708,7 +718,7 @@
+                 if self._last_defense_input is not None:
+                     msg["defense_input"] = self._last_defense_input
+ 
+-        for _ in range(self.max_iters):
++        for _ in range(getattr(self, "_targeted_iteration", 0), self.max_iters):
+             last_message = messages[-1]
+             if last_message.get("role") != "assistant":
+                 break
+@@ -745,6 +755,7 @@
+                 _sync_shadow()
+                 if self.debug:
+                     logging.info("AttriGuard llm_query_start (post-tools, skip-audit)")
++                self._targeted_actor_hook(self, locals())
+                 query, runtime, env, messages, extra_args = self.llm.query(
+                     query, runtime, env, messages, extra_args
+                 )
+@@ -778,6 +789,7 @@
+                 _sync_shadow()
+                 if self.debug:
+                     logging.info("AttriGuard llm_query_start (post-tools, no-audit)")
++                self._targeted_actor_hook(self, locals())
+                 query, runtime, env, messages, extra_args = self.llm.query(
+                     query, runtime, env, messages, extra_args
+                 )
+@@ -798,6 +810,7 @@
+                     )
+                 except Exception:
+                     logging.info("AttriGuard shadow_llm_history=<unserializable>")
++            shadow_context = self._targeted_shadow_hook(self, locals())
+             shadow_query, shadow_runtime, shadow_env, shadow_messages, shadow_extra = self.llm.query(
+                 query, runtime, env, shadow_context, {}
+             )
+@@ -890,10 +903,12 @@
+                     if all_empty:
+                         skip_next_audit = True
+             messages = [*messages, *tool_results]
++            self._targeted_batch_hook(self, locals())
+             _sync_shadow()
+ 
+             if self.debug:
+                 logging.info("AttriGuard llm_query_start (post-tools)")
++            self._targeted_actor_hook(self, locals())
+             query, runtime, env, messages, extra_args = self.llm.query(
+                 query, runtime, env, messages, extra_args
+             )
